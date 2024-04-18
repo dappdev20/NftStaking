@@ -1,0 +1,2 @@
+// module.exports = ["ipfs://QmPYZ6TncLgNziPaa2LF6N1u1VpGvUE6ThkHvnYUf6tRVU"]; // nft mint contract
+module.exports = ["0xFe19A7B93fdded81F3bc1F3b8cC01626d85974Db", "0x7A84eaaa1F391Db91c0979cA7976D0E5550fd258"]; // nft staking contract
