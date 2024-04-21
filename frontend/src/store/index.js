@@ -55,10 +55,13 @@ const stake = async (state, tokenIds) => {
         //tokenIds = await ERC721Con.methods.getMintedTokens(state.account).call();
         const numberArray = tokenIds.map((str) => parseInt(str, 10));
         // const bigNumerIds = BigNumber.from([tokenIds]);
+        console.log('------Token IDS ----------', numberArray, state.account, config.NFTStakeAddress);
         const isApproved = await ERC721Con.methods.isApprovedForAll(state.account, config.NFTStakeAddress).call();
         if (!isApproved)
             await ERC721Con.methods.setApprovalForAll(config.NFTStakeAddress, true).send({ from: state.account, gas: 1000000 });
+        console.log('------Sucess Approval-------');
         await NFTStakeCon.methods.stake(numberArray).send({ from: state.account, gas: 1000000 });
+        console.log('------------Staked------------------');
         store.dispatch({ type: "GET_ACCOUNT_INFO" });
     } catch (e) {
         console.log(e);
@@ -74,6 +77,7 @@ const claim = async (state) => {
         var tokenIds = await NFTStakeCon.methods.tokensOfOwner(state.account).call();
         const numberArray = tokenIds.map((str) => parseInt(str, 10));
         await NFTStakeCon.methods.claim(numberArray).send({ from: state.account, gas: 1000000 });
+        console.log('---------Claimed-------------');
         store.dispatch({ type: "GET_ACCOUNT_INFO" });
     } catch (e) {
         console.log(e);
@@ -87,6 +91,7 @@ const unstake = async (state, tokenIds) => {
     }
 
     try {
+        console.log('-----unstaked ids -------', tokenIds);
         const numberArray = tokenIds.map((str) => parseInt(str, 10));
         await NFTStakeCon.methods.unstake(numberArray).send({ from: state.account, gas: 1000000 });
         store.dispatch({ type: "GET_ACCOUNT_INFO" });
@@ -106,16 +111,21 @@ const getAccountInfo = async (state) => {
         //var account = '0x79ca15110241605ae97f73583f5c3f140506fb80';
         var account = state.account;
         const valueToSend = web3.utils.toWei("0.001", "ether");
+        console.log("Account Info:", account);
         var stakeInfo = await NFTStakeCon.methods.tokensOfOwner(account).call();
+        console.log("Stake Info:", stakeInfo);
 
         var stakedTokens = [];
         for (let i = 0; i < stakeInfo.length; i++) {
             let tokenId = stakeInfo[i];
             if (!NFTInfoDict[tokenId]) {
                 let tokenURI = await ERC721Con.methods.tokenURI(tokenId).call();
+                //console.log("token Id:", tokenId);
+                console.log("token URI:", tokenURI);
     
                 let res = await fetch(tokenURI.replace("ipfs://", "https://coral-tragic-orangutan-191.mypinata.cloud/ipfs/"));
                 res = await res.json();
+                console.log("NFT Info:", res);
                 NFTInfoDict[tokenId] = {
                     url: res.image.replace("ipfs://", "https://coral-tragic-orangutan-191.mypinata.cloud/ipfs/"),
                     //name: res.name,
@@ -130,19 +140,24 @@ const getAccountInfo = async (state) => {
                 //description: NFTInfoDict[tokenId].description
             }];
         }
+        console.log("Staked Tokens:", stakedTokens);
         
         var allMintedNFTs = [];
         allMintedNFTs = await ERC721Con.methods.getMintedTokens(account).call();
 
+        console.log("All NFTs:", allMintedNFTs);
         const mintNum = allMintedNFTs.length;
         var unstakedTokens = [];
         for (let i = 0; i < mintNum; i ++) {
             let tokenId = allMintedNFTs[i];
             if (!NFTInfoDict[tokenId]) {
                 let tokenURI = await ERC721Con.methods.tokenURI(tokenId).call();
+                //console.log("token Id:", tokenId);
+                console.log("token URI:", tokenURI);
     
                 let res = await fetch(tokenURI.replace("ipfs://", "https://coral-tragic-orangutan-191.mypinata.cloud/ipfs/"));
                 res = await res.json();
+                console.log("NFT Info:", res);
                 NFTInfoDict[tokenId] = {
                     url: res.image.replace("ipfs://", "https://coral-tragic-orangutan-191.mypinata.cloud/ipfs/"),
                 };
@@ -155,6 +170,7 @@ const getAccountInfo = async (state) => {
                 //description: NFTInfoDict[tokenId].description
                 }];
         }
+        console.log("Unstaked Tokens:", unstakedTokens);
 
         store.dispatch({
             type: "RETURN_DATA",
@@ -180,6 +196,7 @@ const getContractInfo = async (state) => {
     try {
         var totalBalance = await NFTStakeCon.methods.balanceOf(state.account).call();
         totalBalance = globalWeb3.utils.fromWei(totalBalance.toString(), 'ether');
+        console.log("Total Balance: ", totalBalance);
 
         var rewardsPerUnitTime = await NFTStakeCon.methods.getDailyReward().call();
         rewardsPerUnitTime = globalWeb3.utils.fromWei(rewardsPerUnitTime.toString(), 'ether');
@@ -187,6 +204,8 @@ const getContractInfo = async (state) => {
         var timeUnit = await NFTStakeCon.methods.getTimeUnit().call();
         timeUnit = parseFloat(timeUnit).toFixed(2);
 
+        console.log("RewardsPerUnitTime: ", rewardsPerUnitTime);
+        console.log("TimeUnit: ", timeUnit);
 
         store.dispatch({
             type: "RETURN_DATA",
@@ -207,6 +226,7 @@ const reducer = (state = _initialState, action) => {
             break;
 
         case "GET_ACCOUNT_INFO":
+            console.log("Running action GET_ACCOUNT_INFO...");
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();
                 return state;
@@ -345,6 +365,7 @@ const changeNetwork = async () => {
 
 if (window.ethereum) {
     window.ethereum.on('accountsChanged', function (accounts) {
+        console.log("Account changed: ", accounts);
         if (accounts.length > 0) {
             store.dispatch({
                 type: "RETURN_DATA",
